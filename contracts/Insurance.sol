@@ -1,10 +1,10 @@
 pragma solidity 0.5.11;
 
 import "Whitelist.sol";
-import "Transfer.sol";
+import "TokenInstance.sol";
 
 
-contract Insurance is Whitelist, Transfer {
+contract Insurance is Whitelist, TokenInstance {
     struct Registrant {
         string dataHash;
         bool registered;
@@ -23,7 +23,7 @@ contract Insurance is Whitelist, Transfer {
 
     constructor(uint256 _registrationFee, uint256 _maxPayment, address _token)
         public
-        Transfer(_token)
+        TokenInstance(_token)
     {
         registrationFee = _registrationFee;
         maxPayment = _maxPayment;
@@ -45,7 +45,7 @@ contract Insurance is Whitelist, Transfer {
         registrant.dataHash = _dataHash;
         registrant.registered = true;
 
-        decreaseBalance(msg.value);
+        decreaseBalance(msg.sender, msg.value);
     }
 
     /**

@@ -13,7 +13,7 @@ contract TokenInstance {
         _instance.balanceOf(_address);
     }
 
-    function decreaseBalance(uint256 amount) public {
-        _instance.decreaseBalance(msg.sender, amount);
+    function decreaseBalance(address addr, uint256 amount) public {
+        _instance.decreaseBalance(addr, amount);
     }
 }
