@@ -1,10 +1,10 @@
 pragma solidity 0.5.11;
 
-import "CoronaToken.sol";
 import "Whitelist.sol";
+import "Transfer.sol";
 
 
-contract Insurance is Whitelist, CoronaToken {
+contract Insurance is Whitelist, Transfer {
     struct Registrant {
         string dataHash;
         bool registered;
@@ -21,9 +21,9 @@ contract Insurance is Whitelist, CoronaToken {
     uint256 public registrationFee;
     uint256 public maxPayment;
 
-    constructor(uint256 _registrationFee, uint256 _maxPayment)
+    constructor(uint256 _registrationFee, uint256 _maxPayment, address _token)
         public
-        CoronaToken("Corona", "CRN", 0)
+        Transfer(_token)
     {
         registrationFee = _registrationFee;
         maxPayment = _maxPayment;
@@ -35,8 +35,7 @@ contract Insurance is Whitelist, CoronaToken {
      **/
 
     function register(string memory _dataHash) public payable {
-        require(this.balanceOf(msg.sender) >= registrationFee);
-
+        require(balanceOf(msg.sender) >= registrationFee);
         require(
             keccak256(abi.encodePacked(_dataHash)) !=
                 keccak256(abi.encodePacked(""))
@@ -45,6 +44,8 @@ contract Insurance is Whitelist, CoronaToken {
         Registrant storage registrant = registrants[msg.sender];
         registrant.dataHash = _dataHash;
         registrant.registered = true;
+
+        decreaseBalance(msg.value);
     }
 
     /**
@@ -75,11 +76,9 @@ contract Insurance is Whitelist, CoronaToken {
      **/
 
     function withdraw() public {
-        Claimer memory claimer = claimers[msg.sender];
-
-        require(claimer.rate > 0);
-
-        uint256 payment = (claimer.rate / 500) * 10000;
-        msg.sender.transfer(payment);
+        // Claimer memory claimer = claimers[msg.sender];
+        // require(claimer.rate > 0);
+        // uint256 payment = (claimer.rate / 500) * 10000;
+        // msg.sender.transfer(payment);
     }
 }
