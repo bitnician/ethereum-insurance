@@ -91,7 +91,7 @@ contract Insurance is Whitelist {
     }
 
     /**
-     * The payment amount will be calculated and transfer to a specific wallet.
+     * The payment amount will be calculated and transfer to a user wallet.
      **/
 
     function withdraw() public {}
