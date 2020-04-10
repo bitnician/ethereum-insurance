@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity ^0.5.0;
 
 
 contract ERC20Token {
@@ -28,10 +28,6 @@ contract ERC20Token {
         wallet = _address;
     }
 
-    function setTotalSupply(uint256 _totalSupply) public {
-        totalSupply = _totalSupply;
-    }
-
     function setTokenPerEther(uint256 _tokenPerEther) public {
         tokenPerEther = _tokenPerEther;
     }
@@ -41,11 +37,11 @@ contract ERC20Token {
     }
 
     function decreaseBalance(address _address, uint256 amount) public {
-        _balances[_address] -= amount;
+        _balances[_address] = _balances[_address] - amount;
     }
 
     function increaseBalance(address _address, uint256 amount) public {
-        _balances[_address] += amount;
+        _balances[_address] = _balances[_address] + amount;
     }
 
     function transfer(address recipient, uint256 amount) public returns (bool) {
@@ -57,19 +53,17 @@ contract ERC20Token {
         emit Transfer(msg.sender, recipient, amount);
     }
 
-    function convertFromEther(uint256 value) public view returns (uint256) {
+    function convertFromEther(uint256 value) internal view returns (uint256) {
         return (value * tokenPerEther) / 1 ether;
     }
 
     function buyToken() public payable {
         require(msg.value != 0, "invalid amount of invest!");
-        require(totalSupply > 0);
-
         wallet.transfer(msg.value);
 
         uint256 tokens = convertFromEther(msg.value);
 
-        totalSupply -= tokens;
+        totalSupply += tokens;
 
         increaseBalance(msg.sender, tokens);
 

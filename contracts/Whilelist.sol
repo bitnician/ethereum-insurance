@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity ^0.5.0;
 
 
 contract Whitelist {
@@ -7,32 +7,34 @@ contract Whitelist {
         bool created;
     }
 
-    mapping(address => Profile) doctors;
-    address[] doctorAddress;
+    mapping(address => Profile) public doctors;
+    address[] public doctorAddress;
     address admin;
 
     constructor() public {
         admin = msg.sender;
     }
 
-    modifier onlyWhtielisted() {
-        require(doctors[msg.sender].created == true, "");
+    modifier onlyDoctors() {
+        require(doctors[msg.sender].created == true, "Only Doctors!");
         _;
     }
 
     modifier onlyAdmin() {
-        require(msg.sender == admin);
+        require(msg.sender == admin, "Only Admin!");
         _;
     }
 
-    function addDoctor(string memory name) public onlyAdmin {
+    function addDoctor(string memory name, address _address) public onlyAdmin {
         require(
             keccak256(abi.encodePacked(name)) !=
                 keccak256(abi.encodePacked("")),
             "name must not be empty!"
         );
 
-        Profile storage _profile = doctors[msg.sender];
+        require(_address != address(0), "add zero address");
+
+        Profile storage _profile = doctors[_address];
 
         require(
             _profile.created == false,
@@ -42,7 +44,7 @@ contract Whitelist {
         _profile.name = name;
         _profile.created = true;
 
-        doctorAddress.push(msg.sender);
+        doctorAddress.push(_address);
     }
 
     function getDoctor(uint256 userId) public view returns (string memory) {

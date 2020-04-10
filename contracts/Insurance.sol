@@ -1,10 +1,10 @@
-pragma solidity 0.5.11;
+pragma solidity ^0.5.0;
 
 import "Whitelist.sol";
-import "TokenInstance.sol";
+import "CoronaToken.sol";
 
 
-contract Insurance is Whitelist, TokenInstance {
+contract Insurance is Whitelist {
     struct Registrant {
         string dataHash;
         bool registered;
@@ -12,21 +12,30 @@ contract Insurance is Whitelist, TokenInstance {
 
     struct Claimer {
         uint256 deadLine;
-        uint256 rate;
+        uint256 vote;
+        mapping(address => bool) voters;
     }
 
     mapping(address => Registrant) public registrants;
     mapping(address => Claimer) public claimers;
 
+    // For example: 1 crn token for registrationFee
     uint256 public registrationFee;
+    // Maximum value that we pay claimer
     uint256 public maxPayment;
 
-    constructor(uint256 _registrationFee, uint256 _maxPayment, address _token)
-        public
-        TokenInstance(_token)
-    {
+    address admin;
+    CoronaToken _tokenInstance;
+
+    constructor(
+        uint256 _registrationFee,
+        uint256 _maxPayment,
+        address _tokenAddress
+    ) public {
+        admin = msg.sender;
         registrationFee = _registrationFee;
         maxPayment = _maxPayment;
+        _tokenInstance = CoronaToken(_tokenAddress);
     }
 
     /**
@@ -34,51 +43,56 @@ contract Insurance is Whitelist, TokenInstance {
      * Users also should provide some information such as name and identity. their information will store in blockchain as a hash.
      **/
 
-    function register(string memory _dataHash) public payable {
-        require(balanceOf(msg.sender) >= registrationFee);
+    function register(string memory dataHash) public payable {
         require(
-            keccak256(abi.encodePacked(_dataHash)) !=
-                keccak256(abi.encodePacked(""))
+            _tokenInstance.balanceOf(msg.sender) >= registrationFee,
+            "Don not have enough token!"
+        );
+
+        require(
+            keccak256(abi.encodePacked(dataHash)) !=
+                keccak256(abi.encodePacked("")),
+            "Datahash not allowed to be empty"
         );
 
         Registrant storage registrant = registrants[msg.sender];
-        registrant.dataHash = _dataHash;
+        registrant.dataHash = dataHash;
         registrant.registered = true;
 
-        decreaseBalance(msg.sender, msg.value);
+        _tokenInstance.decreaseBalance(msg.sender, registrationFee);
     }
 
     /**
      * Users can claim for Insurance
      **/
     function claim() public {
-        require(registrants[msg.sender].registered);
+        require(
+            registrants[msg.sender].registered,
+            "You don not have registered yet!"
+        );
 
         Claimer storage claimer = claimers[msg.sender];
         claimer.deadLine = now + 86400;
-        claimer.rate = 500;
+        claimer.vote = 500;
     }
 
     /**
      * Doctors can rate each claim
      **/
 
-    function rate(uint256 _rate, address _claimAddress) public onlyWhtielisted {
+    function rate(uint256 _vote, address _claimAddress) public onlyDoctors {
         Claimer storage claimer = claimers[_claimAddress];
 
-        require(now <= claimer.deadLine);
+        require(now <= claimer.deadLine, "Doctors can vote less than 24H");
+        require(!claimer.voters[msg.sender], "Every Doctor can vote once!");
 
-        claimer.rate = claimer.rate - _rate;
+        claimer.vote = claimer.vote - _vote;
+        claimer.voters[msg.sender] = true;
     }
 
     /**
      * The payment amount will be calculated and transfer to a specific wallet.
      **/
 
-    function withdraw() public {
-        // Claimer memory claimer = claimers[msg.sender];
-        // require(claimer.rate > 0);
-        // uint256 payment = (claimer.rate / 500) * 10000;
-        // msg.sender.transfer(payment);
-    }
+    function withdraw() public {}
 }
