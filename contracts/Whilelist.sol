@@ -47,11 +47,11 @@ contract Whitelist {
         doctorAddresses.push(_address);
     }
 
-    function getDoctor(uint256 userId) public view returns (string memory) {
-        address _doctorAddress = doctorAddresses[userId];
-        Profile memory _profile = doctors[_doctorAddress];
-        return _profile.name;
-    }
+    // function getDoctorByID(uint256 userId) public view returns (string memory) {
+    //     address _doctorAddress = doctorAddresses[userId];
+    //     Profile memory _profile = doctors[_doctorAddress];
+    //     return _profile.name;
+    // }
 
     function getDoctors() public view returns (address[] memory) {
         return doctorAddresses;
