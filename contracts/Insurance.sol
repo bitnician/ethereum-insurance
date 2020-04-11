@@ -73,7 +73,7 @@ contract Insurance is Whitelist {
 
         Claimer storage claimer = claimers[msg.sender];
         claimer.deadLine = now + 86400;
-        claimer.vote = 500;
+        claimer.vote = doctorAddresses.length * 100;
     }
 
     /**

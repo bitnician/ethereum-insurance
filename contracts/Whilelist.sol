@@ -8,7 +8,7 @@ contract Whitelist {
     }
 
     mapping(address => Profile) public doctors;
-    address[] public doctorAddress;
+    address[] public doctorAddresses;
     address admin;
 
     constructor() public {
@@ -44,11 +44,11 @@ contract Whitelist {
         _profile.name = name;
         _profile.created = true;
 
-        doctorAddress.push(_address);
+        doctorAddresses.push(_address);
     }
 
     function getDoctor(uint256 userId) public view returns (string memory) {
-        address _doctorAddress = doctorAddress[userId];
+        address _doctorAddress = doctorAddresses[userId];
         Profile memory _profile = doctors[_doctorAddress];
         return _profile.name;
     }
