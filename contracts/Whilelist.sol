@@ -52,4 +52,8 @@ contract Whitelist {
         Profile memory _profile = doctors[_doctorAddress];
         return _profile.name;
     }
+
+    function getDoctors() public view returns (address[] memory) {
+        return doctorAddresses;
+    }
 }
