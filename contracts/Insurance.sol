@@ -24,7 +24,6 @@ contract Insurance is Whitelist {
     // Maximum value that we pay claimer
     uint256 public maxPayment;
 
-    address admin;
     CoronaToken _tokenInstance;
 
     constructor(
@@ -32,10 +31,17 @@ contract Insurance is Whitelist {
         uint256 _maxPayment,
         address _tokenAddress
     ) public {
-        admin = msg.sender;
         registrationFee = _registrationFee;
         maxPayment = _maxPayment;
         _tokenInstance = CoronaToken(_tokenAddress);
+    }
+
+    /**
+     * Get the balance Of the specific user
+     **/
+
+    function getBalance(address _address) public view returns (uint256) {
+        return _tokenInstance.balanceOf(_address);
     }
 
     /**
@@ -43,20 +49,20 @@ contract Insurance is Whitelist {
      * Users also should provide some information such as name and identity. their information will store in blockchain as a hash.
      **/
 
-    function register(string memory dataHash) public payable {
+    function register(string memory _dataHash) public payable {
         require(
-            _tokenInstance.balanceOf(msg.sender) >= registrationFee,
+            getBalance(msg.sender) >= registrationFee,
             "Don not have enough token!"
         );
 
         require(
-            keccak256(abi.encodePacked(dataHash)) !=
+            keccak256(abi.encodePacked(_dataHash)) !=
                 keccak256(abi.encodePacked("")),
             "Datahash not allowed to be empty"
         );
 
         Registrant storage registrant = registrants[msg.sender];
-        registrant.dataHash = dataHash;
+        registrant.dataHash = _dataHash;
         registrant.registered = true;
 
         _tokenInstance.decreaseBalance(msg.sender, registrationFee);
