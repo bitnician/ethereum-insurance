@@ -9,7 +9,7 @@ contract Whitelist {
 
     mapping(address => Profile) public doctors;
     address[] public doctorAddresses;
-    address admin;
+    address public admin;
 
     constructor() public {
         admin = msg.sender;
