@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "./Whitelist.sol";
-import "./CoronaToken.sol";
+import "Whitelist.sol";
+import "CoronaToken.sol";
 
 
 contract Insurance is Whitelist {
@@ -15,6 +15,10 @@ contract Insurance is Whitelist {
         uint256 vote;
         mapping(address => bool) voters;
     }
+
+    event registered(string dataHash, bool registered);
+
+    event claimed(uint256 deadLine, uint256 vote);
 
     mapping(address => Registrant) public registrants;
     mapping(address => Claimer) public claimers;
@@ -66,6 +70,8 @@ contract Insurance is Whitelist {
         registrant.registered = true;
 
         _tokenInstance.decreaseBalance(msg.sender, registrationFee);
+
+        emit registered(registrant.dataHash, registrant.registered);
     }
 
     /**
@@ -80,13 +86,15 @@ contract Insurance is Whitelist {
         Claimer storage claimer = claimers[msg.sender];
         claimer.deadLine = now + 86400;
         claimer.vote = doctorAddresses.length * 100;
+
+        emit claimed(claimer.deadLine, claimer.vote);
     }
 
     /**
      * Doctors can rate each claim
      **/
 
-    function rate(uint256 _vote, address _claimAddress) public onlyDoctors {
+    function vote(uint256 _vote, address _claimAddress) public onlyDoctors {
         Claimer storage claimer = claimers[_claimAddress];
 
         require(now <= claimer.deadLine, "Doctors can vote less than 24H");
