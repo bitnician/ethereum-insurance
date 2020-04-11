@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "ERC20Token.sol";
+import "./ERC20Token.sol";
 
 
 contract CoronaToken is ERC20Token {

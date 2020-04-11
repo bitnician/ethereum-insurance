@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "Whitelist.sol";
-import "CoronaToken.sol";
+import "./Whitelist.sol";
+import "./CoronaToken.sol";
 
 
 contract Insurance is Whitelist {
