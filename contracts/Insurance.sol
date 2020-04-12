@@ -120,11 +120,24 @@ contract Insurance is Whitelist {
      * Buy CRN token
      **/
 
-    function buyOneToken() external {
-        _tetherInstance.approve(wallet, crnPerTether);
-        uint256 allowance = _tetherInstance.allowance(msg.sender, wallet);
+    function approveTransfer() external {
+        _tetherInstance.approve(address(this), crnPerTether);
+    }
+
+    function buyToken() external {
+        uint256 allowance = _tetherInstance.allowance(
+            msg.sender,
+            address(this)
+        );
         require(allowance >= crnPerTether, "Now Allowed");
-        _tetherInstance.transferFrom(msg.sender, address(this), crnPerTether);
+
+        bool transfered = _tetherInstance.transferFrom(
+            msg.sender,
+            address(this),
+            crnPerTether
+        );
+
+        require(transfered, "");
     }
 
     /**
