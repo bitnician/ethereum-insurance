@@ -15,10 +15,12 @@ contract Whitelist {
 
     mapping(address => Profile) public doctors;
     address[] public doctorAddresses;
+    uint256 doctorsCount;
     address public admin;
 
     constructor() public {
         admin = msg.sender;
+        doctorsCount = 0;
     }
 
     modifier onlyDoctors() {
@@ -51,6 +53,8 @@ contract Whitelist {
         _profile.created = true;
 
         doctorAddresses.push(_address);
+
+        doctorsCount++;
     }
 
     function getDoctors() public view returns (address[] memory) {
@@ -132,7 +136,7 @@ contract Insurance is Whitelist {
             crnPerTether
         );
 
-        return transfered;
+        require(transfered, "Tether has not been transfered!");
     }
 
     /**
@@ -190,7 +194,7 @@ contract Insurance is Whitelist {
         claimer.addr = msg.sender;
         claimer.deadLine = now + 86400;
         claimer.claimed = true;
-        claimer.vote = doctorAddresses.length * 100;
+        claimer.vote = doctorsCount * 100;
 
         emit claimed(
             claimer.addr,
@@ -215,7 +219,18 @@ contract Insurance is Whitelist {
     }
 
     /**
-     * The payment amount will be calculated and transfer to a user wallet.
+     * Calculating the payment that we need to transfer to claimer.
+     **/
+
+    function calcClaimerDemand(address addr) internal view returns (uint256) {
+        Claimer memory claimer = claimers[addr];
+        uint256 maxVote = doctorsCount * 100;
+        uint256 result = (claimer.vote / maxVote) * maxPayment;
+        return result;
+    }
+
+    /**
+     * Transfer tether to the claimer wallet.
      **/
 
     function withdraw() external {
@@ -227,5 +242,7 @@ contract Insurance is Whitelist {
             "24H must be passed after claim request!"
         );
         require(claimer.vote > 0, "You will not receive any money!");
+
+        _tetherInstance.transfer(msg.sender, calcClaimerDemand(msg.sender));
     }
 }
