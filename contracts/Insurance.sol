@@ -304,6 +304,7 @@ contract Insurance is Whitelist {
      * ***Withdraw***
      *
      * Admin can withdraw the Tether balance of the smart contract
+     *
      **/
     function withdraw() external onlyAdmin {
         uint256 totlaBalance = _tetherInstance.balanceOf(address(this));
