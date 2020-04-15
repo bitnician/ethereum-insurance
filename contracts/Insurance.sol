@@ -16,7 +16,7 @@ contract Whitelist {
     mapping(address => Profile) public doctors;
     address[] public doctorAddresses;
     uint256 doctorsCount;
-    address public admin;
+    address payable public admin;
 
     constructor() public {
         admin = msg.sender;
@@ -87,6 +87,7 @@ contract Insurance is Whitelist {
     //Registrants who request for claim
     mapping(address => Claimer) public claimers;
 
+    //Events
     event registered(address registrant, string dataHash, bool registered);
     event claimed(
         address claimer,
@@ -97,7 +98,7 @@ contract Insurance is Whitelist {
 
     // Price of each CRN token in USDT
     uint256 public crnPerTether;
-    // User needs 1 token for register
+    // User needs 1 CRN token for registeration
     uint256 public registrationFee = 1;
     // Maximum value that we pay the claimer
     uint256 public maxPayment;
@@ -105,7 +106,7 @@ contract Insurance is Whitelist {
     //wallet
     address payable wallet;
 
-    //Supported tokes
+    //Supported tokens
     address public _tether = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
     ERC20Interface _tetherInstance;
@@ -120,8 +121,33 @@ contract Insurance is Whitelist {
         _crnInstance = CoronaToken(_crnToken);
     }
 
+    //Updating the registrationFee if needed!
+    function setRegistrationFee(uint256 _value) external onlyAdmin {
+        registrationFee = _value;
+    }
+
+    //Updating the maxPayment if needed!
+    function setMaxPayment(uint256 _value) external onlyAdmin {
+        maxPayment = _value;
+    }
+
+    //Updating the crnPerTether if needed!
+    function setCrnPerTether(uint256 _value) external onlyAdmin {
+        crnPerTether = _value;
+    }
+
     /**
-     * Buy CRN token
+     *  ***Buy CRN token***
+     *
+     * -Contract check the allowance to see if the user has given permission
+     *  to smart contract for transfering Tether from user wallet.
+     *
+     * -The allowance should be equal or greater than crnPerTether.
+     *
+     * -The Tethers will be transfered to contract balance.
+     *
+     * -Contract send 1 CRN token to user wallet.
+     *
      **/
     function buyToken() external returns (bool) {
         uint256 allowance = _tetherInstance.allowance(
@@ -135,8 +161,9 @@ contract Insurance is Whitelist {
             address(this),
             crnPerTether
         );
-
         require(transfered, "Tether has not been transfered!");
+
+        return _crnInstance.transfer(msg.sender, registrationFee);
     }
 
     /**
@@ -148,8 +175,12 @@ contract Insurance is Whitelist {
     }
 
     /**
-     * Users should spend a specific amount of token(registrationFee) to register.
-     * Users also should provide some information such as name and identity. their information will store in blockchain as a hash.
+     * ***Register A User***
+     *
+     * -Users should spend a specific amount of token (registrationFee) for registering.
+     *
+     * -Users also should provide some information such as name and identity.
+     *  their information will store in blockchain as a hash.
      **/
 
     function register(string memory _dataHash) public payable {
@@ -171,8 +202,6 @@ contract Insurance is Whitelist {
         registrant.dataHash = _dataHash;
         registrant.registered = true;
 
-        // _tokenInstance.decreaseBalance(msg.sender, registrationFee);
-
         emit registered(
             registrant.addr,
             registrant.dataHash,
@@ -181,7 +210,13 @@ contract Insurance is Whitelist {
     }
 
     /**
-     * Users can claim for Insurance
+     * ***Registered User Can Claim***
+     *
+     * -First of all, user should be registered.
+     *
+     * -The registered user can request for claim only once.
+     *
+     *
      **/
     function claim() public {
         require(
@@ -205,7 +240,11 @@ contract Insurance is Whitelist {
     }
 
     /**
-     * Doctors can rate each claim
+     * ***Doctors Can Vote Each Claim Request***
+     *
+     * -Doctors should vote less than 24H, unless they want to give the full vote(100).
+     *
+     * -Every Doctor can vote once!
      **/
 
     function vote(uint256 _vote, address _claimAddress) public onlyDoctors {
@@ -222,18 +261,33 @@ contract Insurance is Whitelist {
      * Calculating the payment that we need to transfer to claimer.
      **/
 
-    function calcClaimerDemand(address addr) internal view returns (uint256) {
-        Claimer memory claimer = claimers[addr];
+    function calcClaimerDemand(address _address)
+        internal
+        view
+        returns (uint256)
+    {
+        Claimer memory claimer = claimers[_address];
         uint256 maxVote = doctorsCount * 100;
         uint256 result = (claimer.vote / maxVote) * maxPayment;
         return result;
     }
 
     /**
-     * Transfer tether to the claimer wallet.
+     * ***Transfer tether to the claimer wallet.***
+     *
+     * -Only user that request for claim can call the function.
+     *
+     * -Claimer can call the function after 24H from the claim request,
+     *  so the doctors have time to vote the claim.
+     *
+     * -The total of votes should be greater than 0.
+     *
+     * -The payment value will be calculated and transfer
+     *  from the smart contract to the user wallet.
+     *
      **/
 
-    function withdraw() external {
+    function payClaimerDemand() external {
         Claimer storage claimer = claimers[msg.sender];
 
         require(claimer.claimed, "You have not claimed yet!");
@@ -244,5 +298,28 @@ contract Insurance is Whitelist {
         require(claimer.vote > 0, "You will not receive any money!");
 
         _tetherInstance.transfer(msg.sender, calcClaimerDemand(msg.sender));
+    }
+
+    /**
+     * ***Withdraw***
+     *
+     * Admin can withdraw the Tether balance of the smart contract
+     **/
+    function withdraw() external onlyAdmin {
+        uint256 totlaBalance = _tetherInstance.balanceOf(address(this));
+        require(totlaBalance > 0, "Yout total balance is 0");
+        _tetherInstance.transfer(admin, totlaBalance);
+    }
+
+    /**
+     * ***Deposit***
+     *
+     * -Admin can send Tether to the smart contract from his/het wallet,
+     *  (Fist he/she needs to approve the TX).
+     *
+     **/
+
+    function deposit(uint256 _value) external onlyAdmin {
+        _tetherInstance.transferFrom(admin, address(this), _value);
     }
 }
