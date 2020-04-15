@@ -310,16 +310,4 @@ contract Insurance is Whitelist {
         require(totlaBalance > 0, "Yout total balance is 0");
         _tetherInstance.transfer(admin, totlaBalance);
     }
-
-    /**
-     * ***Deposit***
-     *
-     * -Admin can send Tether to the smart contract from his/het wallet,
-     *  (Fist he/she needs to approve the TX).
-     *
-     **/
-
-    function deposit(uint256 _value) external onlyAdmin {
-        _tetherInstance.transferFrom(admin, address(this), _value);
-    }
 }
