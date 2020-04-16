@@ -1,7 +1,7 @@
 //Insurance Contract
-const Insurance = artifacts.require("Insurance");
+const Insurance = artifacts.require('Insurance');
 //Token Contract
-const CRN = artifacts.require("CoronaToken");
+const CRN = artifacts.require('CoronaToken');
 
 module.exports = (deployer) => {
   deployer.deploy(CRN).then(() => {
