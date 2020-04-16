@@ -103,9 +103,6 @@ contract Insurance is Whitelist {
     // Maximum value that we pay the claimer
     uint256 public maxPayment;
 
-    //wallet
-    address payable wallet;
-
     //Supported tokens
     address public stableCoin;
     //Corona Token
@@ -185,6 +182,9 @@ contract Insurance is Whitelist {
     /**
      * ***Register A User***
      *
+     * -Contract check the allowance to see if the user has given permission
+     *  to smart contract for transfering CRN from user wallet.
+     *
      * -Users should spend a specific amount of token (registrationFee) for registering.
      *
      * -Users also should provide some information such as name and identity.
@@ -207,6 +207,17 @@ contract Insurance is Whitelist {
             !registrants[msg.sender].registered,
             "You have already registered!"
         );
+
+        uint256 allowance = _crnInstance.allowance(msg.sender, address(this));
+        require(allowance >= registrationFee, "Now Allowed");
+
+        bool transfered = _crnInstance.transferFrom(
+            msg.sender,
+            address(this),
+            registrationFee
+        );
+
+        require(transfered, "CRN has not been transfered!");
 
         Registrant storage registrant = registrants[msg.sender];
         registrant.addr = msg.sender;
