@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "Token.sol";
+import "./Token.sol";
 
 
 // ----------------------------------------------------------------------------
@@ -15,7 +15,7 @@ contract Whitelist {
 
     mapping(address => Profile) public doctors;
     address[] public doctorAddresses;
-    uint256 doctorsCount;
+    uint256 public doctorsCount;
     address payable public admin;
 
     constructor() public {
@@ -37,10 +37,10 @@ contract Whitelist {
         require(
             keccak256(abi.encodePacked(name)) !=
                 keccak256(abi.encodePacked("")),
-            "name must not be empty!"
+            "Name must not be empty!"
         );
 
-        require(_address != address(0), "add zero address");
+        require(_address != address(0), "Zero address!");
 
         Profile storage _profile = doctors[_address];
 
@@ -107,18 +107,26 @@ contract Insurance is Whitelist {
     address payable wallet;
 
     //Supported tokens
-    address public _tether = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+    address public stableCoin;
+    //Corona Token
+    address public crn;
 
-    ERC20Interface _tetherInstance;
-    CoronaToken _crnInstance;
+    ERC20Interface _stableCoinInstance;
+    ERC20Interface _crnInstance;
 
-    constructor(uint256 _crnPerTether, uint256 _maxPayment, address _crnToken)
+    constructor(uint256 _crnPerTether, uint256 _maxPayment, address _crn)
         public
     {
         crnPerTether = _crnPerTether;
         maxPayment = _maxPayment;
-        _tetherInstance = ERC20Interface(_tether);
-        _crnInstance = CoronaToken(_crnToken);
+        crn = _crn;
+        _crnInstance = ERC20Interface(_crn);
+    }
+
+    //Set the stable Coin address (like Tether OR TrueUSD)
+    function setStableCoin(address _stableCoinAddress) external onlyAdmin {
+        stableCoin = _stableCoinAddress;
+        _stableCoinInstance = ERC20Interface(_stableCoinAddress);
     }
 
     //Updating the registrationFee if needed!
@@ -149,14 +157,14 @@ contract Insurance is Whitelist {
      * -Contract send 1 CRN token to user wallet.
      *
      **/
-    function buyToken() external returns (bool) {
-        uint256 allowance = _tetherInstance.allowance(
+    function buyToken() public returns (bool) {
+        uint256 allowance = _stableCoinInstance.allowance(
             msg.sender,
             address(this)
         );
         require(allowance >= crnPerTether, "Now Allowed");
 
-        bool transfered = _tetherInstance.transferFrom(
+        bool transfered = _stableCoinInstance.transferFrom(
             msg.sender,
             address(this),
             crnPerTether
@@ -184,7 +192,10 @@ contract Insurance is Whitelist {
      **/
 
     function register(string memory _dataHash) public payable {
-        require(getBalance(msg.sender) >= 1, "Don not have enough token!");
+        require(
+            getBalance(msg.sender) >= registrationFee,
+            "Don not have enough token!"
+        );
 
         require(
             keccak256(abi.encodePacked(_dataHash)) !=
@@ -247,13 +258,14 @@ contract Insurance is Whitelist {
      * -Every Doctor can vote once!
      **/
 
-    function vote(uint256 _vote, address _claimAddress) public onlyDoctors {
-        Claimer storage claimer = claimers[_claimAddress];
+    function vote(uint256 _vote, address _claimerAddress) public onlyDoctors {
+        Claimer storage claimer = claimers[_claimerAddress];
 
+        require(claimer.claimed, "Claimer does not exist!");
         require(now <= claimer.deadLine, "Doctors can vote less than 24H");
         require(!claimer.voters[msg.sender], "Every Doctor can vote once!");
-
-        claimer.vote = claimer.vote - _vote;
+        uint256 decreased = 100 - _vote;
+        claimer.vote = claimer.vote - decreased;
         claimer.voters[msg.sender] = true;
     }
 
@@ -297,18 +309,17 @@ contract Insurance is Whitelist {
         );
         require(claimer.vote > 0, "You will not receive any money!");
 
-        _tetherInstance.transfer(msg.sender, calcClaimerDemand(msg.sender));
+        _stableCoinInstance.transfer(msg.sender, calcClaimerDemand(msg.sender));
     }
 
     /**
      * ***Withdraw***
      *
      * Admin can withdraw the Tether balance of the smart contract
-     *
      **/
     function withdraw() external onlyAdmin {
-        uint256 totlaBalance = _tetherInstance.balanceOf(address(this));
+        uint256 totlaBalance = _stableCoinInstance.balanceOf(address(this));
         require(totlaBalance > 0, "Yout total balance is 0");
-        _tetherInstance.transfer(admin, totlaBalance);
+        _stableCoinInstance.transfer(admin, totlaBalance);
     }
 }
