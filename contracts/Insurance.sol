@@ -126,13 +126,6 @@ contract Insurance is Whitelist {
         _crnInstance = ERC20Interface(_crn);
     }
 
-    //Check to see of contract has any balance or not.
-    modifier checkContractBalance() {
-        uint256 totlaBalance = _stableCoinInstance.balanceOf(address(this));
-        require(totlaBalance > 0, "Contract total balance is 0");
-        _;
-    }
-
     //Set the stable Coin address (like Tether OR TrueUSD)
     function setStableCoin(address _stableCoinAddress) external onlyAdmin {
         stableCoin = _stableCoinAddress;
@@ -330,8 +323,9 @@ contract Insurance is Whitelist {
      *
      **/
 
-    function payClaimerDemand() external checkContractBalance {
+    function payClaimerDemand() external {
         Claimer storage claimer = claimers[msg.sender];
+        uint256 totlaBalance = _stableCoinInstance.balanceOf(address(this));
 
         require(claimer.claimed, "You have not claimed yet!");
         require(!claimer.paid, "Previously paid!");
@@ -341,8 +335,15 @@ contract Insurance is Whitelist {
         );
         require(claimer.vote > 0, "You will not receive any money!");
 
+        uint256 claimerDemand = calcClaimerDemand(msg.sender);
+
+        require(
+            totlaBalance >= claimerDemand,
+            "Contract total balance is not enough!"
+        );
+
         claimer.paid = true;
-        _stableCoinInstance.transfer(msg.sender, calcClaimerDemand(msg.sender));
+        _stableCoinInstance.transfer(msg.sender, claimerDemand);
     }
 
     /**
@@ -350,8 +351,9 @@ contract Insurance is Whitelist {
      *
      * Admin can withdraw the Tether balance of the smart contract
      **/
-    function withdraw() external onlyAdmin checkContractBalance {
+    function withdraw() external onlyAdmin {
         uint256 totlaBalance = _stableCoinInstance.balanceOf(address(this));
+        require(totlaBalance > 0, "Contract total balance is 0");
         _stableCoinInstance.transfer(admin, totlaBalance);
     }
 }
