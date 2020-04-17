@@ -133,6 +133,24 @@ contract('Insurance', ([admin, user, registrant1, registrant2, doctor1, doctor2,
     });
   });
 
+  /**
+   *
+   */
+  describe('Set Suspend Time', () => {
+    it('should set the suspend time', async () => {
+      await insurance.setSuspendTime(1, { from: admin });
+
+      const suspendTime = await insurance.suspendTime();
+      assert.equal(suspendTime.toNumber(), 1);
+    });
+    it('should NOT set the suspend time from user', async () => {
+      await insurance.setSuspendTime(999999, { from: user }).should.be.rejectedWith('Only Admin!');
+    });
+  });
+  /**
+   *
+   */
+
   describe('Insurance Lifecycle', () => {
     /**
      *
@@ -246,21 +264,21 @@ contract('Insurance', ([admin, user, registrant1, registrant2, doctor1, doctor2,
      *
      */
     describe('Vote', () => {
-      // it('should vote a claimer by doctor', async () => {
-      //   await insurance.vote(70, registrant1, { from: doctor1 });
-      //   const claimer = await insurance.claimers(registrant1);
-      //   assert.equal(claimer.vote.toNumber(), 70);
-      // });
-      // it('should NOT vote a claimer by doctor twice', async () => {
-      //   await insurance
-      //     .vote(70, registrant1, { from: doctor1 })
-      //     .should.be.rejectedWith('Every Doctor can vote once!');
-      // });
-      // it('should NOT vote a registrant', async () => {
-      //   await insurance
-      //     .vote(70, registrant2, { from: doctor1 })
-      //     .should.be.rejectedWith('Claimer does not exist!');
-      // });
+      it('should vote a claimer by doctor', async () => {
+        await insurance.vote(70, registrant1, { from: doctor1 });
+        const claimer = await insurance.claimers(registrant1);
+        assert.equal(claimer.vote.toNumber(), 70);
+      });
+      it('should NOT vote a claimer by doctor twice', async () => {
+        await insurance
+          .vote(70, registrant1, { from: doctor1 })
+          .should.be.rejectedWith('Every Doctor can vote once!');
+      });
+      it('should NOT vote a registrant', async () => {
+        await insurance
+          .vote(70, registrant2, { from: doctor1 })
+          .should.be.rejectedWith('Claimer does not exist!');
+      });
     });
   });
 
@@ -272,7 +290,9 @@ contract('Insurance', ([admin, user, registrant1, registrant2, doctor1, doctor2,
       const oldInsuranceBalance = await usdtInstance.methods.balanceOf(insuranceAddress).call();
       const oldRegistrantBalance = await usdtInstance.methods.balanceOf(registrant1).call();
 
-      await insurance.payClaimerDemand({ from: registrant1 });
+      setTimeout(async () => {
+        await insurance.payClaimerDemand({ from: registrant1 });
+      }, 1000);
 
       const newInsuranceBalance = await usdtInstance.methods.balanceOf(insuranceAddress).call();
       const newRegistrantBalance = await usdtInstance.methods.balanceOf(registrant1).call();
