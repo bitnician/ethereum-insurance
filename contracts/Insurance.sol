@@ -327,7 +327,7 @@ contract Insurance is Whitelist {
         Claimer storage claimer = claimers[msg.sender];
 
         require(claimer.claimed, "You have not claimed yet!");
-        require(claimer.paid, "Previously paid!");
+        require(!claimer.paid, "Previously paid!");
         require(
             now > claimer.deadLine,
             "24H must be passed after claim request!"
