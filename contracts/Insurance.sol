@@ -79,6 +79,7 @@ contract Insurance is Whitelist {
         uint256 deadLine;
         uint256 vote;
         bool claimed;
+        bool paid;
         mapping(address => bool) voters;
     }
 
@@ -93,7 +94,8 @@ contract Insurance is Whitelist {
         address claimer,
         uint256 deadLine,
         uint256 vote,
-        bool claimed
+        bool claimed,
+        bool paid
     );
 
     // Price of each CRN token in USDT
@@ -260,13 +262,15 @@ contract Insurance is Whitelist {
         claimer.addr = msg.sender;
         claimer.deadLine = now + suspendTime;
         claimer.claimed = true;
+        claimer.paid = false;
         claimer.vote = doctorsCount * 100;
 
         emit claimed(
             claimer.addr,
             claimer.deadLine,
             claimer.vote,
-            claimer.claimed
+            claimer.claimed,
+            claimer.paid
         );
     }
 
@@ -323,12 +327,14 @@ contract Insurance is Whitelist {
         Claimer storage claimer = claimers[msg.sender];
 
         require(claimer.claimed, "You have not claimed yet!");
+        require(claimer.paid, "Previously paid!");
         require(
             now > claimer.deadLine,
             "24H must be passed after claim request!"
         );
         require(claimer.vote > 0, "You will not receive any money!");
 
+        claimer.paid = true;
         _stableCoinInstance.transfer(msg.sender, calcClaimerDemand(msg.sender));
     }
 
