@@ -246,6 +246,7 @@ contract('Insurance', ([admin, user, registrant1, registrant2, doctor1, doctor2,
 
         assert.equal(claimer, registrant1);
         // assert.isAbove(deadLine.toNumber(), getEpochTime());
+
         assert.equal(vote, doctorsCount * 100);
         assert.equal(claimed, true);
       });
