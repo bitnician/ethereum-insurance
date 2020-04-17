@@ -98,10 +98,12 @@ contract Insurance is Whitelist {
 
     // Price of each CRN token in USDT
     uint256 public crnPerTether;
-    // User needs 1 CRN token for registeration
-    uint256 public registrationFee = 1;
+    // User needs 1 CRN token for registeration, default: 1 CRN Token
+    uint256 public registrationFee;
     // Maximum value that we pay the claimer
     uint256 public maxPayment;
+    // The time that doctors needs for vote, default: 86400 seconds(24H)
+    uint256 public suspendTime;
 
     //Supported tokens
     address public stableCoin;
@@ -116,6 +118,8 @@ contract Insurance is Whitelist {
     {
         crnPerTether = _crnPerTether;
         maxPayment = _maxPayment;
+        registrationFee = 1;
+        suspendTime = 86400;
         crn = _crn;
         _crnInstance = ERC20Interface(_crn);
     }
@@ -139,6 +143,11 @@ contract Insurance is Whitelist {
     //Updating the crnPerTether if needed!
     function setCrnPerTether(uint256 _value) external onlyAdmin {
         crnPerTether = _value;
+    }
+
+    //Updating the SuspendTime if needed!
+    function setSuspendTime(uint256 _value) external onlyAdmin {
+        suspendTime = _value;
     }
 
     /**
@@ -249,7 +258,7 @@ contract Insurance is Whitelist {
 
         Claimer storage claimer = claimers[msg.sender];
         claimer.addr = msg.sender;
-        claimer.deadLine = now + 86400;
+        claimer.deadLine = now + suspendTime;
         claimer.claimed = true;
         claimer.vote = doctorsCount * 100;
 
