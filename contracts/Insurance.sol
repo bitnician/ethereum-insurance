@@ -310,7 +310,7 @@ contract Insurance is Whitelist {
 
     function payClaimerDemand() external {
         Claimer storage claimer = claimers[msg.sender];
-        uint256 totlaBalance = _stableCoinInstance.balanceOf(address(this));
+        uint256 totalBalance = _stableCoinInstance.balanceOf(address(this));
 
         require(claimer.claimed, "You have not claimed yet!");
         require(!claimer.paid, "Previously paid!");
@@ -324,7 +324,7 @@ contract Insurance is Whitelist {
         uint256 claimerDemand = (claimer.vote / maxVote) * maxPayment;
 
         require(
-            totlaBalance >= claimerDemand,
+            totalBalance >= claimerDemand,
             "Contract total balance is not enough!"
         );
         _stableCoinInstance.transfer(msg.sender, claimerDemand);
@@ -337,8 +337,8 @@ contract Insurance is Whitelist {
      * Admin can withdraw the Tether balance of the smart contract
      **/
     function withdraw() external onlyAdmin {
-        uint256 totlaBalance = _stableCoinInstance.balanceOf(address(this));
-        require(totlaBalance > 0, "Contract total balance is 0");
-        _stableCoinInstance.transfer(admin, totlaBalance);
+        uint256 totalBalance = _stableCoinInstance.balanceOf(address(this));
+        require(totalBalance > 0, "Contract total balance is 0");
+        _stableCoinInstance.transfer(admin, totalBalance);
     }
 }
