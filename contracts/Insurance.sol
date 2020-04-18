@@ -118,8 +118,8 @@ contract Insurance is Whitelist {
     constructor(uint256 _crnPerTether, uint256 _maxPayment, address _crn)
         public
     {
-        crnPerTether = _crnPerTether;
-        maxPayment = _maxPayment;
+        crnPerTether = _crnPerTether * 1000000000000000000;
+        maxPayment = _maxPayment * 1000000000000000000;
         registrationFee = 1;
         suspendTime = 86400;
         crn = _crn;
@@ -139,12 +139,12 @@ contract Insurance is Whitelist {
 
     //Updating the maxPayment if needed!
     function setMaxPayment(uint256 _value) external onlyAdmin {
-        maxPayment = _value;
+        maxPayment = _value * 1000000000000000000;
     }
 
     //Updating the crnPerTether if needed!
     function setCrnPerTether(uint256 _value) external onlyAdmin {
-        crnPerTether = _value;
+        crnPerTether = _value * 1000000000000000000;
     }
 
     //Updating the SuspendTime if needed!
@@ -321,7 +321,7 @@ contract Insurance is Whitelist {
         require(claimer.vote > 0, "You will not receive any money!");
 
         uint256 maxVote = doctorsCount * 100;
-        uint256 claimerDemand = (claimer.vote / maxVote) * maxPayment;
+        uint256 claimerDemand = (claimer.vote * maxPayment) / maxVote;
 
         require(
             totalBalance >= claimerDemand,
