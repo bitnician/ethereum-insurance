@@ -1,4 +1,4 @@
-const USDT = artifacts.require("USDT");
+const USDT = artifacts.require('USDT');
 
 module.exports = function (deployer) {
   deployer.deploy(USDT);
