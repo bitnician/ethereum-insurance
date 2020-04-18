@@ -202,7 +202,7 @@ contract Insurance is Whitelist {
      *  their information will store in blockchain as a hash.
      **/
 
-    function register(string memory _dataHash) public payable {
+    function register(string memory _dataHash) public {
         require(
             getBalance(msg.sender) >= registrationFee,
             "Don not have enough token!"
@@ -297,11 +297,7 @@ contract Insurance is Whitelist {
      * Calculating the payment that we need to transfer to claimer.
      **/
 
-    function calcClaimerDemand(address _address)
-        internal
-        view
-        returns (uint256)
-    {
+    function calcClaimerDemand(address _address) public view returns (uint256) {
         Claimer memory claimer = claimers[_address];
         uint256 maxVote = doctorsCount * 100;
         uint256 result = (claimer.vote / maxVote) * maxPayment;
@@ -341,9 +337,8 @@ contract Insurance is Whitelist {
             totlaBalance >= claimerDemand,
             "Contract total balance is not enough!"
         );
-
-        claimer.paid = true;
         _stableCoinInstance.transfer(msg.sender, claimerDemand);
+        claimer.paid = true;
     }
 
     /**
