@@ -294,17 +294,6 @@ contract Insurance is Whitelist {
     }
 
     /**
-     * Calculating the payment that we need to transfer to claimer.
-     **/
-
-    function calcClaimerDemand(address _address) public view returns (uint256) {
-        Claimer memory claimer = claimers[_address];
-        uint256 maxVote = doctorsCount * 100;
-        uint256 result = (claimer.vote / maxVote) * maxPayment;
-        return result;
-    }
-
-    /**
      * ***Transfer tether to the claimer wallet.***
      *
      * -Only user that request for claim can call the function.
@@ -331,7 +320,8 @@ contract Insurance is Whitelist {
         );
         require(claimer.vote > 0, "You will not receive any money!");
 
-        uint256 claimerDemand = calcClaimerDemand(msg.sender);
+        uint256 maxVote = doctorsCount * 100;
+        uint256 claimerDemand = (claimer.vote / maxVote) * maxPayment;
 
         require(
             totlaBalance >= claimerDemand,
