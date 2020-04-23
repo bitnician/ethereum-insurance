@@ -1,11 +1,44 @@
 pragma solidity ^0.5.0;
 
-import "./Token.sol";
+
+// ============================================================================
+// ERC Token Standard #20 Interface
+// ============================================================================
+contract ERC20Interface {
+    function totalSupply() public view returns (uint256);
+
+    function balanceOf(address tokenOwner)
+        public
+        view
+        returns (uint256 balance);
+
+    function allowance(address tokenOwner, address spender)
+        public
+        view
+        returns (uint256 remaining);
+
+    function transfer(address to, uint256 tokens) public returns (bool success);
+
+    function approve(address spender, uint256 tokens)
+        public
+        returns (bool success);
+
+    function transferFrom(address from, address to, uint256 tokens)
+        public
+        returns (bool success);
+
+    event Transfer(address indexed from, address indexed to, uint256 tokens);
+    event Approval(
+        address indexed tokenOwner,
+        address indexed spender,
+        uint256 tokens
+    );
+}
 
 
-// ----------------------------------------------------------------------------
-// Whitelist
-// ----------------------------------------------------------------------------
+// ============================================================================
+// Whitelist Constract
+// ============================================================================
 
 contract Whitelist {
     struct Profile {
@@ -63,33 +96,50 @@ contract Whitelist {
 }
 
 
-// ----------------------------------------------------------------------------
-// Insurance
-// ----------------------------------------------------------------------------
+// ============================================================================
+// Insurance Contract
+// ============================================================================
 
 contract Insurance is Whitelist {
-    struct Registrant {
-        address addr;
+    //---------------------------------------------------
+    //Structs
+    //---------------------------------------------------
+    //Registrant Detail structure
+    struct RegistrantDetail {
         string dataHash;
         bool registered;
     }
-
-    struct Claimer {
+    //Registrant structure
+    struct Registrant {
         address addr;
+        mapping(string => RegistrantDetail) details;
+    }
+    //Claimer Detail structure
+    struct ClaimerDetail {
         uint256 deadLine;
         uint256 vote;
+        uint256 maxVote;
         bool claimed;
         bool paid;
         mapping(address => bool) voters;
     }
-
+    //Claimer structure
+    struct Claimer {
+        address addr;
+        mapping(string => ClaimerDetail) details;
+    }
+    //---------------------------------------------------
+    //Mappings
+    //---------------------------------------------------
     //People who register for insurance
     mapping(address => Registrant) public registrants;
     //Registrants who request for claim
     mapping(address => Claimer) public claimers;
-
+    //
+    //---------------------------------------------------
     //Events
-    event registered(address registrant, string dataHash, bool registered);
+    //---------------------------------------------------
+    event registered(address registrant, string dataHash);
     event claimed(
         address claimer,
         uint256 deadLine,
@@ -97,10 +147,12 @@ contract Insurance is Whitelist {
         bool claimed,
         bool paid
     );
-
-    // Price of each CRN token in USDT
+    //---------------------------------------------------
+    //State Variables
+    //---------------------------------------------------
+    // Price of each CRN token in USDT, user may access contract to trasnfer this value from his/her wallet
     uint256 public crnPerTether;
-    // User needs 1 CRN token for registeration, default: 1 CRN Token
+    // User needs 1 CRN token for registeration, user may access contract to trasnfer this value from his/her wallet
     uint256 public registrationFee;
     // Maximum value that we pay the claimer
     uint256 public maxPayment;
@@ -112,24 +164,33 @@ contract Insurance is Whitelist {
     //Corona Token
     address public crn;
 
+    //Conver values with 18 decimals
+    uint256 convertable = 1000000000000000000;
+
+    //Token insurances
     ERC20Interface _stableCoinInstance;
     ERC20Interface _crnInstance;
 
-    constructor(uint256 _crnPerTether, uint256 _maxPayment, address _crn)
-        public
-    {
-        crnPerTether = _crnPerTether * 1000000000000000000;
-        maxPayment = _maxPayment * 1000000000000000000;
+    //---------------------------------------------------
+    //Setter Functions
+    //---------------------------------------------------
+    constructor(uint256 _crnPerTether, uint256 _maxPayment) public {
+        crnPerTether = _crnPerTether * convertable;
+        maxPayment = _maxPayment * convertable;
         registrationFee = 1;
         suspendTime = 86400;
-        crn = _crn;
-        _crnInstance = ERC20Interface(_crn);
     }
 
     //Set the stable Coin address (like Tether OR TrueUSD)
     function setStableCoin(address _stableCoinAddress) external onlyAdmin {
         stableCoin = _stableCoinAddress;
         _stableCoinInstance = ERC20Interface(_stableCoinAddress);
+    }
+
+    //Set the contract token if needed
+    function setCrnToken(address _crnToken) external onlyAdmin {
+        crn = _crnToken;
+        _crnInstance = ERC20Interface(_crnToken);
     }
 
     //Updating the registrationFee if needed!
@@ -139,12 +200,12 @@ contract Insurance is Whitelist {
 
     //Updating the maxPayment if needed!
     function setMaxPayment(uint256 _value) external onlyAdmin {
-        maxPayment = _value * 1000000000000000000;
+        maxPayment = _value * convertable;
     }
 
     //Updating the crnPerTether if needed!
     function setCrnPerTether(uint256 _value) external onlyAdmin {
-        crnPerTether = _value * 1000000000000000000;
+        crnPerTether = _value * convertable;
     }
 
     //Updating the SuspendTime if needed!
@@ -152,25 +213,74 @@ contract Insurance is Whitelist {
         suspendTime = _value;
     }
 
+    //Update the contract owner
+    function setOwner(address payable _admin) external onlyAdmin {
+        admin = _admin;
+    }
+
+    //---------------------------------------------------
+    //Getter Functions
+    //---------------------------------------------------
+
+    function getRegistrant(address _addr, string memory _dataHash)
+        public
+        view
+        returns (address _address, string memory _hash, bool _registered)
+    {
+        return (
+            registrants[_addr].addr,
+            registrants[_addr].details[_dataHash].dataHash,
+            registrants[_addr].details[_dataHash].registered
+        );
+    }
+
+    function getClaimer(address _addr, string memory _dataHash)
+        public
+        view
+        returns (
+            address _address,
+            uint256 _deadLine,
+            uint256 _vote,
+            bool _claimed,
+            bool _paid
+        )
+    {
+        return (
+            claimers[_addr].addr,
+            claimers[_addr].details[_dataHash].deadLine,
+            claimers[_addr].details[_dataHash].vote,
+            claimers[_addr].details[_dataHash].claimed,
+            claimers[_addr].details[_dataHash].paid
+        );
+    }
+
+    //---------------------------------------------------
+    //Contract life cycle Functions
+    //---------------------------------------------------
+
+    modifier registerValidation(address sender, string memory dataHash) {
+        require(
+            keccak256(abi.encodePacked(dataHash)) !=
+                keccak256(abi.encodePacked("")),
+            "Datahash not allowed to be empty!"
+        );
+        require(
+            !registrants[sender].details[dataHash].registered,
+            "User already registered!"
+        );
+        _;
+    }
+
     /**
-     *  ***Buy CRN token***
-     *
-     * -Contract check the allowance to see if the user has given permission
-     *  to smart contract for transfering Tether from user wallet.
-     *
-     * -The allowance should be equal or greater than crnPerTether.
-     *
-     * -The Tethers will be transfered to contract balance.
-     *
-     * -Contract send 1 CRN token to user wallet.
-     *
-     **/
-    function buyToken() public returns (bool) {
+     * @dev Allows user to buy CRN token directly from the contract.
+     */
+
+    function buyToken(uint256 amount) public returns (bool) {
         uint256 allowance = _stableCoinInstance.allowance(
             msg.sender,
             address(this)
         );
-        require(allowance >= crnPerTether, "Now Allowed");
+        require(allowance >= crnPerTether * amount, "Now Allowed");
 
         bool transfered = _stableCoinInstance.transferFrom(
             msg.sender,
@@ -179,162 +289,160 @@ contract Insurance is Whitelist {
         );
         require(transfered, "Tether has not been transfered!");
 
-        return _crnInstance.transfer(msg.sender, registrationFee);
+        return _crnInstance.transfer(msg.sender, amount);
     }
 
     /**
-     * Get the balance Of the specific user
+     * @param sender The msg.sender
+     * @param dataHash The hash of user info
+     * @dev Add registrant
      **/
 
-    function getBalance(address _address) public view returns (uint256) {
-        return _crnInstance.balanceOf(_address);
+    function addRegistrant(address sender, string memory dataHash) internal {
+        Registrant storage registrant = registrants[sender];
+        registrant.addr = sender;
+        registrant.details[dataHash].registered = true;
+        registrant.details[dataHash].dataHash = dataHash;
+        emit registered(registrant.addr, registrant.details[dataHash].dataHash);
     }
 
     /**
-     * ***Register A User***
-     *
-     * -Contract check the allowance to see if the user has given permission
-     *  to smart contract for transfering CRN from user wallet.
-     *
-     * -Users should spend a specific amount of token (registrationFee) for registering.
-     *
-     * -Users also should provide some information such as name and identity.
-     *  their information will store in blockchain as a hash.
+     * @param dataHash The hash of user info
+     * @dev Allows user to register
      **/
 
-    function register(string memory _dataHash) public {
-        require(
-            getBalance(msg.sender) >= registrationFee,
-            "Don not have enough token!"
+    function registerWithStableCoin(string memory dataHash)
+        public
+        registerValidation(msg.sender, dataHash)
+    {
+        uint256 stableCoinAllowance = _stableCoinInstance.allowance(
+            msg.sender,
+            address(this)
         );
-
-        require(
-            keccak256(abi.encodePacked(_dataHash)) !=
-                keccak256(abi.encodePacked("")),
-            "Datahash not allowed to be empty"
-        );
-
-        require(
-            !registrants[msg.sender].registered,
-            "You have already registered!"
-        );
-
-        uint256 allowance = _crnInstance.allowance(msg.sender, address(this));
-        require(allowance >= registrationFee, "Now Allowed");
-
-        bool transfered = _crnInstance.transferFrom(
+        require(stableCoinAllowance >= crnPerTether, "Low allowance!");
+        _stableCoinInstance.transferFrom(
             msg.sender,
             address(this),
-            registrationFee
+            crnPerTether
         );
-
-        require(transfered, "CRN has not been transfered!");
-
-        Registrant storage registrant = registrants[msg.sender];
-        registrant.addr = msg.sender;
-        registrant.dataHash = _dataHash;
-        registrant.registered = true;
-
-        emit registered(
-            registrant.addr,
-            registrant.dataHash,
-            registrant.registered
-        );
+        addRegistrant(msg.sender, dataHash);
     }
 
     /**
-     * ***Registered User Can Claim***
-     *
-     * -First of all, user should be registered.
-     *
-     * -The registered user can request for claim only once.
-     *
-     *
+     * @param dataHash The hash of user info
+     * @dev Allows user to register
      **/
-    function claim() public {
+    function registerWithCrnToken(string memory dataHash)
+        public
+        registerValidation(msg.sender, dataHash)
+    {
+        uint256 crnAllowance = _crnInstance.allowance(
+            msg.sender,
+            address(this)
+        );
+        require(crnAllowance >= registrationFee, "Low allowance!");
+        _crnInstance.transferFrom(msg.sender, address(this), registrationFee);
+        addRegistrant(msg.sender, dataHash);
+    }
+
+    /**
+     * @param _dataHash The hash of user info
+     * @dev Allows Registrant to Claim
+     **/
+    function claim(string memory _dataHash) public {
         require(
-            registrants[msg.sender].registered,
+            registrants[msg.sender].details[_dataHash].registered,
             "You do not have registered yet!"
         );
-        require(!claimers[msg.sender].claimed, "You can claim once!");
+        require(
+            !claimers[msg.sender].details[_dataHash].claimed,
+            "User claimed once!"
+        );
 
         Claimer storage claimer = claimers[msg.sender];
         claimer.addr = msg.sender;
-        claimer.deadLine = now + suspendTime;
-        claimer.claimed = true;
-        claimer.paid = false;
-        claimer.vote = doctorsCount * 100;
+
+        claimer.details[_dataHash].deadLine = now + suspendTime;
+        claimer.details[_dataHash].claimed = true;
+        claimer.details[_dataHash].paid = false;
+        claimer.details[_dataHash].vote = doctorsCount * 100;
+        claimer.details[_dataHash].maxVote = claimer.details[_dataHash].vote;
 
         emit claimed(
             claimer.addr,
-            claimer.deadLine,
-            claimer.vote,
-            claimer.claimed,
-            claimer.paid
+            claimer.details[_dataHash].deadLine,
+            claimer.details[_dataHash].vote,
+            claimer.details[_dataHash].claimed,
+            claimer.details[_dataHash].paid
         );
     }
 
     /**
-     * ***Doctors Can Vote Each Claim Request***
-     *
-     * -Doctors should vote less than 24H, unless they want to give the full vote(100).
-     *
-     * -Every Doctor can vote once!
+     * @param _vote the value between 0 to 100
+     * @param _dataHash The address of claimer
+     * @dev Allows Doctors to vote the claimer
      **/
 
-    function vote(uint256 _vote, address _claimerAddress) public onlyDoctors {
+    function vote(
+        uint256 _vote,
+        address _claimerAddress,
+        string memory _dataHash
+    ) public onlyDoctors {
         Claimer storage claimer = claimers[_claimerAddress];
 
-        require(claimer.claimed, "Claimer does not exist!");
-        require(now <= claimer.deadLine, "Doctors can vote less than 24H");
-        require(!claimer.voters[msg.sender], "Every Doctor can vote once!");
+        require(claimer.details[_dataHash].claimed, "Claimer does not exist!");
+        require(
+            now <= claimer.details[_dataHash].deadLine,
+            "Doctors can vote less than 24H"
+        );
+        require(
+            !claimer.details[_dataHash].voters[msg.sender],
+            "Every Doctor can vote once!"
+        );
         uint256 decreased = 100 - _vote;
-        claimer.vote = claimer.vote - decreased;
-        claimer.voters[msg.sender] = true;
+        claimer.details[_dataHash].vote =
+            claimer.details[_dataHash].vote -
+            decreased;
+        claimer.details[_dataHash].voters[msg.sender] = true;
     }
 
     /**
-     * ***Transfer tether to the claimer wallet.***
-     *
-     * -Only user that request for claim can call the function.
-     *
-     * -Claimer can call the function after 24H from the claim request,
-     *  so the doctors have time to vote the claim.
-     *
-     * -The total of votes should be greater than 0.
-     *
-     * -The payment value will be calculated and transfer
-     *  from the smart contract to the user wallet.
-     *
+     * @dev Paying Claimer his/her demand after calculating
      **/
-
-    function payClaimerDemand() external {
+    function payClaimerDemand(string calldata _dataHash) external {
         Claimer storage claimer = claimers[msg.sender];
         uint256 totalBalance = _stableCoinInstance.balanceOf(address(this));
 
-        require(claimer.claimed, "You have not claimed yet!");
-        require(!claimer.paid, "Previously paid!");
         require(
-            now > claimer.deadLine,
+            claimer.details[_dataHash].claimed,
+            "You have not claimed yet!"
+        );
+        require(!claimer.details[_dataHash].paid, "Previously paid!");
+        require(
+            now > claimer.details[_dataHash].deadLine,
             "24H must be passed after claim request!"
         );
-        require(claimer.vote > 0, "You will not receive any money!");
+        require(
+            claimer.details[_dataHash].vote > 0,
+            "You will not receive any money!"
+        );
 
-        uint256 maxVote = doctorsCount * 100;
-        uint256 claimerDemand = (claimer.vote * maxPayment) / maxVote;
+        uint256 claimerDemand = (claimer.details[_dataHash].vote * maxPayment) /
+            claimer.details[_dataHash].maxVote;
 
         require(
             totalBalance >= claimerDemand,
             "Contract total balance is not enough!"
         );
         _stableCoinInstance.transfer(msg.sender, claimerDemand);
-        claimer.paid = true;
+        claimer.details[_dataHash].paid = true;
     }
 
+    //---------------------------------------------------
+    //Withdraw Function
+    //---------------------------------------------------
     /**
-     * ***Withdraw***
-     *
-     * Admin can withdraw the Tether balance of the smart contract
+     * @dev admin can withdraw the contract balance
      **/
     function withdraw() external onlyAdmin {
         uint256 totalBalance = _stableCoinInstance.balanceOf(address(this));
