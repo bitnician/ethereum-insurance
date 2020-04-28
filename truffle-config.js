@@ -1,3 +1,5 @@
+const Web3 = require('web3');
+const web3 = new Web3();
 var HDWalletProvider = require('@truffle/hdwallet-provider');
 const dotenv = require('dotenv');
 
@@ -55,15 +57,23 @@ module.exports = {
       port: 8545, // Standard Ethereum port (default: none)
       network_id: '*', // Any network (default: none)
     },
-    rinkeby: {
-      host: 'localhost',
-      provider: function () {
-        return new HDWalletProvider(mnemonic, 'https://rinkeby.infura.io/v3/' + tokenKey);
-      },
-      network_id: 4,
-      gas: 6700000,
-      gasPrice: 10000000000,
-    },
+    // rinkeby: {
+    //   host: 'localhost',
+    //   provider: function () {
+    //     return new HDWalletProvider(mnemonic, 'https://rinkeby.infura.io/v3/' + tokenKey);
+    //   },
+    //   network_id: 4,
+    //   gas: 6700000,
+    //   gasPrice: 10000000000,
+    // },
+    // live: {
+    //   provider: function () {
+    //     return new HDWalletProvider(mnemonic, 'https://mainnet.infura.io/v3/' + tokenKey);
+    //   },
+    //   network_id: 1,
+    //   gasPrice: web3.utils.toWei('10', 'gwei'),
+    //   gas: 6500000,
+    // },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -99,7 +109,7 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: '0.5.0', // Fetch exact version from solc-bin (default: truffle's version)
+      version: '0.4.17', // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       // settings: {          // See the solidity docs for advice about optimization and evmVersion
       optimizer: {

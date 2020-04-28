@@ -1,5 +1,5 @@
-const Insurance = artifacts.require('Insurance');
+// const Insurance = artifacts.require('Insurance');
 
 module.exports = (deployer) => {
-  deployer.deploy(Insurance, 15, 100);
+  // deployer.deploy(Insurance, 15, 100);
 };

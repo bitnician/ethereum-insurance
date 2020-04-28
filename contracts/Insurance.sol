@@ -139,8 +139,8 @@ contract Insurance is Whitelist {
     //Corona Token
     address public crn;
 
-    //Conver values with 18 decimals
-    uint256 convertable = 1000000000000000000;
+    //Conver values with 6 decimals for USDT
+    uint256 convertable = 1000000;
 
     //Token insurances
     ERC20Interface _stableCoinInstance;
