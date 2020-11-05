@@ -52,11 +52,11 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    development: {
-      host: '127.0.0.1', // Localhost (default: none)
-      port: 8545, // Standard Ethereum port (default: none)
-      network_id: '*', // Any network (default: none)
-    },
+    // development: {
+    //   host: '127.0.0.1', // Localhost (default: none)
+    //   port: 8545, // Standard Ethereum port (default: none)
+    //   network_id: '*', // Any network (default: none)
+    // },
     // rinkeby: {
     //   host: 'localhost',
     //   provider: function () {
@@ -66,14 +66,14 @@ module.exports = {
     //   gas: 6700000,
     //   gasPrice: 10000000000,
     // },
-    // live: {
-    //   provider: function () {
-    //     return new HDWalletProvider(mnemonic, 'https://mainnet.infura.io/v3/' + tokenKey);
-    //   },
-    //   network_id: 1,
-    //   gasPrice: web3.utils.toWei('10', 'gwei'),
-    //   gas: 6500000,
-    // },
+    live: {
+      provider: function () {
+        return new HDWalletProvider(mnemonic, 'https://ropsten.infura.io/v3/' + tokenKey);
+      },
+      network_id: 1,
+      gasPrice: web3.utils.toWei('10', 'gwei'),
+      gas: 6500000,
+    },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port

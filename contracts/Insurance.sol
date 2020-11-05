@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.4.17;
 
 
 // ============================================================================
@@ -35,31 +35,30 @@ contract Whitelist {
     mapping(address => Profile) public doctors;
     address[] public doctorAddresses;
     uint256 public doctorsCount;
-    address payable public admin;
+    address public admin;
 
-    constructor() public {
+    function Whitelist() public {
         admin = msg.sender;
         doctorsCount = 0;
     }
 
     modifier onlyDoctors() {
-        require(doctors[msg.sender].created == true, 'Only Doctors!');
+        require(doctors[msg.sender].created == true);
         _;
     }
 
     modifier onlyAdmin() {
-        require(msg.sender == admin, 'Only Admin!');
+        require(msg.sender == admin);
         _;
     }
 
     function addDoctor(string memory name, address _address) public onlyAdmin {
-        require(keccak256(abi.encodePacked(name)) != keccak256(abi.encodePacked('')), 'Name must not be empty!');
-
-        require(_address != address(0), 'Zero address!');
+        require(bytes(name).length > 0);
+        require(_address != address(0));
 
         Profile storage _profile = doctors[_address];
 
-        require(_profile.created == false, 'Profile with the same address already exists!');
+        require(_profile.created == false);
 
         _profile.name = name;
         _profile.created = true;
@@ -116,12 +115,6 @@ contract Insurance is Whitelist {
     mapping(address => Claimer) public claimers;
     //The hash of user data
     mapping(string => bool) hashes;
-    //
-    //---------------------------------------------------
-    //Events
-    //---------------------------------------------------
-    event registered(address registrant, string dataHash);
-    event claimed(address claimer, uint256 deadLine, uint256 vote, bool claimed, bool paid);
     //---------------------------------------------------
     //State Variables
     //---------------------------------------------------
@@ -139,9 +132,6 @@ contract Insurance is Whitelist {
     //Corona Token
     address public crn;
 
-    //Conver values with 6 decimals for USDT
-    uint256 convertable = 1000000;
-
     //Token insurances
     ERC20Interface _stableCoinInstance;
     ERC20Interface _crnInstance;
@@ -149,9 +139,9 @@ contract Insurance is Whitelist {
     //---------------------------------------------------
     //Setter Functions
     //---------------------------------------------------
-    constructor(uint256 _crnPerTether, uint256 _maxPayment) public {
-        crnPerTether = _crnPerTether * convertable;
-        maxPayment = _maxPayment * convertable;
+    function Insurance(uint256 _crnPerTether, uint256 _maxPayment) public {
+        crnPerTether = _crnPerTether;
+        maxPayment = _maxPayment;
         registrationFee = 1;
         suspendTime = 86400;
     }
@@ -175,12 +165,12 @@ contract Insurance is Whitelist {
 
     //Updating the maxPayment if needed!
     function setMaxPayment(uint256 _value) external onlyAdmin {
-        maxPayment = _value * convertable;
+        maxPayment = _value;
     }
 
     //Updating the crnPerTether if needed!
     function setCrnPerTether(uint256 _value) external onlyAdmin {
-        crnPerTether = _value * convertable;
+        crnPerTether = _value;
     }
 
     //Updating the SuspendTime if needed!
@@ -189,7 +179,7 @@ contract Insurance is Whitelist {
     }
 
     //Update the contract owner
-    function setOwner(address payable _admin) external onlyAdmin {
+    function setOwner(address _admin) external onlyAdmin {
         admin = _admin;
     }
 
@@ -216,8 +206,8 @@ contract Insurance is Whitelist {
     //---------------------------------------------------
 
     modifier registerValidation(string memory dataHash) {
-        require(keccak256(abi.encodePacked(dataHash)) != keccak256(abi.encodePacked('')), 'Datahash not allowed to be empty!');
-        require(!hashes[dataHash], 'You can register once!');
+        require(bytes(dataHash).length > 0);
+        require(!hashes[dataHash]);
         _;
     }
 
@@ -227,10 +217,10 @@ contract Insurance is Whitelist {
 
     function buyToken(uint256 amount) public returns (bool) {
         uint256 allowance = _stableCoinInstance.allowance(msg.sender, address(this));
-        require(allowance >= crnPerTether * amount, 'Now Allowed');
+        require(allowance >= crnPerTether * amount);
 
         bool transfered = _stableCoinInstance.transferFrom(msg.sender, address(this), crnPerTether);
-        require(transfered, 'Tether has not been transfered!');
+        require(transfered);
 
         return _crnInstance.transfer(msg.sender, amount);
     }
@@ -247,7 +237,6 @@ contract Insurance is Whitelist {
         registrant.details[dataHash].registered = true;
         registrant.details[dataHash].dataHash = dataHash;
         hashes[dataHash] = true;
-        emit registered(registrant.addr, registrant.details[dataHash].dataHash);
     }
 
     /**
@@ -256,8 +245,6 @@ contract Insurance is Whitelist {
      **/
 
     function registerWithStableCoin(string memory dataHash) public registerValidation(dataHash) {
-        uint256 stableCoinAllowance = _stableCoinInstance.allowance(msg.sender, address(this));
-        require(stableCoinAllowance >= crnPerTether, 'Low allowance!');
         _stableCoinInstance.transferFrom(msg.sender, address(this), crnPerTether);
         addRegistrant(msg.sender, dataHash);
     }
@@ -267,8 +254,6 @@ contract Insurance is Whitelist {
      * @dev Allows user to register
      **/
     function registerWithCrnToken(string memory dataHash) public registerValidation(dataHash) {
-        uint256 crnAllowance = _crnInstance.allowance(msg.sender, address(this));
-        require(crnAllowance >= registrationFee, 'Low allowance!');
         _crnInstance.transferFrom(msg.sender, address(this), registrationFee);
         addRegistrant(msg.sender, dataHash);
     }
@@ -278,8 +263,8 @@ contract Insurance is Whitelist {
      * @dev Allows Registrant to Claim
      **/
     function claim(string memory _dataHash) public {
-        require(registrants[msg.sender].details[_dataHash].registered, 'You do not have registered yet!');
-        require(!claimers[msg.sender].details[_dataHash].claimed, 'User claimed once!');
+        require(registrants[msg.sender].details[_dataHash].registered);
+        require(!claimers[msg.sender].details[_dataHash].claimed);
 
         Claimer storage claimer = claimers[msg.sender];
         claimer.addr = msg.sender;
@@ -289,8 +274,6 @@ contract Insurance is Whitelist {
         claimer.details[_dataHash].paid = false;
         claimer.details[_dataHash].vote = doctorsCount * 100;
         claimer.details[_dataHash].maxVote = claimer.details[_dataHash].vote;
-
-        emit claimed(claimer.addr, claimer.details[_dataHash].deadLine, claimer.details[_dataHash].vote, claimer.details[_dataHash].claimed, claimer.details[_dataHash].paid);
     }
 
     /**
@@ -302,9 +285,9 @@ contract Insurance is Whitelist {
     function vote(uint256 _vote, address _claimerAddress, string memory _dataHash) public onlyDoctors {
         Claimer storage claimer = claimers[_claimerAddress];
 
-        require(claimer.details[_dataHash].claimed, 'Claimer does not exist!');
-        require(now <= claimer.details[_dataHash].deadLine, 'Doctors can vote less than 24H');
-        require(!claimer.details[_dataHash].voters[msg.sender], 'Every Doctor can vote once!');
+        require(claimer.details[_dataHash].claimed);
+        require(now <= claimer.details[_dataHash].deadLine);
+        require(!claimer.details[_dataHash].voters[msg.sender]);
         uint256 decreased = 100 - _vote;
         claimer.details[_dataHash].vote = claimer.details[_dataHash].vote - decreased;
         claimer.details[_dataHash].voters[msg.sender] = true;
@@ -313,18 +296,18 @@ contract Insurance is Whitelist {
     /**
      * @dev Paying Claimer his/her demand after calculating
      **/
-    function payClaimerDemand(string calldata _dataHash) external {
+    function payClaimerDemand(string _dataHash) external {
         Claimer storage claimer = claimers[msg.sender];
         uint256 totalBalance = _stableCoinInstance.balanceOf(address(this));
 
-        require(claimer.details[_dataHash].claimed, 'You have not claimed yet!');
-        require(!claimer.details[_dataHash].paid, 'Previously paid!');
-        require(now > claimer.details[_dataHash].deadLine, '24H must be passed after claim request!');
-        require(claimer.details[_dataHash].vote > 0, 'You will not receive any money!');
+        require(claimer.details[_dataHash].claimed);
+        require(!claimer.details[_dataHash].paid);
+        require(now > claimer.details[_dataHash].deadLine);
+        require(claimer.details[_dataHash].vote > 0);
 
         uint256 claimerDemand = (claimer.details[_dataHash].vote * maxPayment) / claimer.details[_dataHash].maxVote;
 
-        require(totalBalance >= claimerDemand, 'Contract total balance is not enough!');
+        require(totalBalance >= claimerDemand);
         _stableCoinInstance.transfer(msg.sender, claimerDemand);
         claimer.details[_dataHash].paid = true;
     }
@@ -337,7 +320,7 @@ contract Insurance is Whitelist {
      **/
     function withdraw() external onlyAdmin {
         uint256 totalBalance = _stableCoinInstance.balanceOf(address(this));
-        require(totalBalance > 0, 'Contract total balance is 0');
+        require(totalBalance > 0);
         _stableCoinInstance.transfer(admin, totalBalance);
     }
 }
