@@ -137,14 +137,19 @@ contract Insurance is Whitelist {
     ERC20Interface _crnInstance;
 
     //---------------------------------------------------
-    //Setter Functions
+    //Constructor
     //---------------------------------------------------
+
     function Insurance(uint256 _crnPerTether, uint256 _maxPayment) public {
         crnPerTether = _crnPerTether;
         maxPayment = _maxPayment;
         registrationFee = 1;
         suspendTime = 86400;
     }
+
+    //---------------------------------------------------
+    //Setter Functions
+    //---------------------------------------------------
 
     //Set the stable Coin address (like Tether OR TrueUSD)
     function setStableCoin(address _stableCoinAddress) external onlyAdmin {
